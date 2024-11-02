@@ -1,4 +1,11 @@
+
 # BICEP: Brownian-Inspired Computationally Efficient Parallelization Pipeline
+
+**Version**: 1.0  
+**Last Updated**: November 2, 2024  
+**Maintainer**: [Ryan R / github.com/rochmanofenna]
+
+---
 
 BICEP’s combined optimizations achieve up to **90-100% computational efficiency** in large-scale simulations, translating to substantial reductions in both processing time and memory use. These efficiencies make BICEP ideal for resource-intensive tasks, such as:
 
