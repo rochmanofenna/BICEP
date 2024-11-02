@@ -8,7 +8,7 @@ import os
 from src.randomness.stochastic_control import apply_stochastic_controls
 
 # Setup logging
-logging.basicConfig(filename='simulation.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(filename='/mnt/c/Users/ryanc/Desktop/BICEP/results/logs/simulation.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def detect_system_resources():
     """Detects system resources to set optimal parameter values."""
@@ -48,9 +48,13 @@ def setup_dask_cluster(n_paths, large_scale_threshold=5000):
     logging.info("Using local Dask cluster for testing.")
     return client
 
-
-
 def simulate_single_path(T, n_steps, initial_value, dt, directional_bias, variance_adjustment, xp, apply_controls):
+    # Mock values for missing parameters in apply_stochastic_controls
+    state_visit_count = 1
+    feedback_value = 0.5
+    time_step = 0.1
+    total_steps = n_steps
+
     time = xp.linspace(0, T, n_steps + 1)
     increments = xp.random.normal(0, 1, n_steps)
     
@@ -60,16 +64,28 @@ def simulate_single_path(T, n_steps, initial_value, dt, directional_bias, varian
     else:
         increments *= xp.sqrt(dt)
     
-    # Apply stochastic controls from `apply_stochastic_controls`
+    # Apply stochastic controls to each increment
     for i in range(len(increments)):
-        increments[i] = apply_controls(increments[i])
+        increments[i] = apply_controls(increments[i], state_visit_count, feedback_value, time_step, total_steps)
 
     path = xp.zeros(n_steps + 1)
     path[0] = initial_value
     path[1:] = xp.cumsum(increments) + initial_value
     return path
 
+
 def brownian_motion_paths(T=1, n_steps=100, initial_value=0, n_paths=10, directional_bias=0.0, variance_adjustment=None):
+     # Validate inputs
+    if T <= 0:
+        raise ValueError("Time duration T must be greater than 0.")
+    if n_steps <= 0:
+        raise ValueError("Number of steps n_steps must be greater than 0.")
+    if n_paths < 0:
+        raise ValueError("Number of paths n_paths must be non-negative.")
+
+    if n_paths == 0:
+        return np.array([]), np.empty((0, n_steps + 1))
+
     available_memory_gb, cpu_count, gpu_available, gpu_memory_gb = detect_system_resources()
     batch_size, save_interval, gpu_threshold = calculate_optimal_parameters(
         n_paths, n_steps, available_memory_gb, cpu_count, gpu_available, gpu_memory_gb
@@ -116,14 +132,25 @@ def brownian_motion_paths(T=1, n_steps=100, initial_value=0, n_paths=10, directi
 
     return time, paths
 
-# Example usage
-time, brownian_paths = brownian_motion_paths(T=1, n_steps=100, initial_value=0, n_paths=10)
 
-plt.figure(figsize=(10, 6))
-for i in range(min(10, 10000)):
-    plt.plot(time, brownian_paths[i], label=f'Path {i+1}')
-plt.title("Brownian Motion Paths (Adaptive and Distributed)")
-plt.xlabel("Time")
-plt.ylabel("W(t)")
-plt.legend()
-plt.show()
+# Example usage
+if __name__ == "__main__":
+    # Set up the Dask cluster on an available port to avoid conflicts
+    cluster = LocalCluster(dashboard_address=":0")
+    client = Client(cluster)
+
+    # Call the function or perform operations that use Dask and multiprocessing
+    time, brownian_paths = brownian_motion_paths(T=1, n_steps=100, initial_value=0, n_paths=10)
+
+    plt.figure(figsize=(10, 6))
+    for i in range(min(10, 10000)):
+        plt.plot(time, brownian_paths[i], label=f'Path {i+1}')
+    plt.title("Brownian Motion Paths (Adaptive and Distributed)")
+    plt.xlabel("Time")
+    plt.ylabel("W(t)")
+    plt.legend()
+    plt.show()
+
+    # Optionally, close the client after execution
+    client.close()
+    print("Dask processing complete.")

@@ -3,7 +3,7 @@ import logging
 from functools import lru_cache
 
 # Setup logging with adjustable verbosity
-logging.basicConfig(filename='stochastic_control.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(filename='/mnt/c/Users/ryanc/Desktop/BICEP/results/logs/stochastic_control.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Configurable thresholds (can adjust as needed)
 HIGH_THRESHOLD = 10
