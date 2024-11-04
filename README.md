@@ -16,6 +16,7 @@ BICEP’s combined optimizations achieve up to **90-100% computational efficienc
 Together, these optimizations position BICEP as a state-of-the-art tool for optimizing neural network training, probabilistic modeling, and large-scale data processing.
 
 ---
+## OVERVIEW
 
 **BICEP** is an innovative GPU-accelerated pipeline for large-scale probabilistic modeling and adaptive bit mapping, designed to reach quantum-like efficiency on classical hardware. Inspired by the stochastic nature of Brownian motion, BICEP leverages multi-scale processing, sparse encoding, and advanced neural network optimization techniques to dynamically allocate computational resources, significantly reducing training time and cost.
 
