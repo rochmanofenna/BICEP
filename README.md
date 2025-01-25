@@ -7,7 +7,7 @@
 
 ---
 
-BICEP’s combined optimizations achieve up to **90-100% computational efficiency** in large-scale simulations, translating to substantial reductions in both processing time and memory use. These efficiencies make BICEP ideal for resource-intensive tasks, such as:
+BICEP’s combined optimizations can theoretically achieve up to **50-60% computational efficiency** in large-scale simulations, translating to substantial reductions in both processing time and memory use. These efficiencies make BICEP ideal for resource-intensive tasks, such as:
 
 - **GPT Model Training**: Potentially reducing cost and time by half or more.
 - **Stochastic Financial Modeling**
