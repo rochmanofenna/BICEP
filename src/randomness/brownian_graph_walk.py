@@ -1,7 +1,7 @@
 import networkx as nx
 import numpy as np
 from src.randomness.brownian_motion import simulate_single_path
-from stochastic_control import apply_stochastic_controls
+from src.randomness.stochastic_control import apply_stochastic_controls
 import json
 import time
 from dask import delayed, compute
@@ -24,10 +24,21 @@ transitions = {
 for (start, end), weight in transitions.items():
     G.add_edge(start, end, weight=weight)
 
+import logging
+
 def load_user_config(config_path="user_config.json"):
-    with open(config_path) as f:
-        config = json.load(f)
-    return config
+    """
+    Load user configuration if available; otherwise return an empty dict.
+    """
+    try:
+        with open(config_path) as f:
+            return json.load(f)
+    except FileNotFoundError:
+        logging.warning(f"Configuration file '{config_path}' not found; using defaults.")
+        return {}
+    except json.JSONDecodeError as e:
+        logging.error(f"Error parsing '{config_path}': {e}; using defaults.")
+        return {}
 
 user_config = load_user_config()
 

@@ -1,10 +1,11 @@
 import numpy as np
 import logging
+import os
 from functools import lru_cache
 
 # Setup logging with adjustable verbosity
 logging.basicConfig(
-    filename='/mnt/c/Users/ryanc/Desktop/BICEP/results/logs/stochastic_control.log',
+    filename=os.path.join(os.path.dirname(__file__), '../../results/logs/stochastic_control.log'),
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
