@@ -5,10 +5,15 @@ from dask.distributed import Client, LocalCluster
 import psutil
 import logging
 import os
+import time
 from src.randomness.stochastic_control import apply_stochastic_controls
 
 # Setup logging
-logging.basicConfig(filename='/mnt/c/Users/ryanc/Desktop/BICEP/results/logs/simulation.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    filename='/mnt/c/Users/ryanc/Desktop/BICEP/results/logs/simulation.log',
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 def detect_system_resources():
     """Detects system resources to set optimal parameter values."""
@@ -23,9 +28,11 @@ def detect_system_resources():
         gpu_available = False
         gpu_memory_gb = 0
 
-    logging.info(f"System Resources Detected - Memory: {available_memory_gb:.2f} GB, "
-                 f"CPU Cores: {cpu_count}, GPU: {'Yes' if gpu_available else 'No'}, "
-                 f"GPU Memory: {gpu_memory_gb:.2f} GB")
+    logging.info(
+        f"System Resources Detected - Memory: {available_memory_gb:.2f} GB, "
+        f"CPU Cores: {cpu_count}, GPU: {'Yes' if gpu_available else 'No'}, "
+        f"GPU Memory: {gpu_memory_gb:.2f} GB"
+    )
     return available_memory_gb, cpu_count, gpu_available, gpu_memory_gb
 
 def calculate_optimal_parameters(n_paths, n_steps, available_memory_gb, cpu_count, gpu_available, gpu_memory_gb):
@@ -35,8 +42,10 @@ def calculate_optimal_parameters(n_paths, n_steps, available_memory_gb, cpu_coun
     gpu_threshold = 1000 if gpu_available and gpu_memory_gb >= 8 else n_paths + 1
     save_interval = max(2000, batch_size * 2)
 
-    logging.info(f"Calculated Parameters - Batch Size: {batch_size}, GPU Threshold: {gpu_threshold}, "
-                 f"Save Interval: {save_interval}")
+    logging.info(
+        f"Calculated Parameters - Batch Size: {batch_size}, GPU Threshold: {gpu_threshold}, "
+        f"Save Interval: {save_interval}"
+    )
     return batch_size, save_interval, gpu_threshold
 
 def setup_dask_cluster(n_paths, large_scale_threshold=5000):
@@ -44,7 +53,6 @@ def setup_dask_cluster(n_paths, large_scale_threshold=5000):
     # For local testing only
     cluster = LocalCluster(n_workers=2, threads_per_worker=2, memory_limit='2GB')
     client = Client(cluster)
-
     logging.info("Using local Dask cluster for testing.")
     return client
 
@@ -57,32 +65,43 @@ def simulate_single_path(T, n_steps, initial_value, dt, directional_bias, varian
 
     time = xp.linspace(0, T, n_steps + 1)
     increments = xp.random.normal(0, 1, n_steps)
-    
+
     if variance_adjustment:
         variance_scale = variance_adjustment(time[1:])
         increments *= xp.sqrt(variance_scale * dt)
     else:
         increments *= xp.sqrt(dt)
-    
+
     # Apply stochastic controls to each increment
     for i in range(len(increments)):
-        increments[i] = apply_controls(increments[i], state_visit_count, feedback_value, time_step, total_steps)
+        increments[i] = apply_controls(
+            increments[i],
+            state_visit_count,
+            feedback_value,
+            time_step,
+            total_steps
+        )
 
     path = xp.zeros(n_steps + 1)
     path[0] = initial_value
     path[1:] = xp.cumsum(increments) + initial_value
     return path
 
-
-def brownian_motion_paths(T=1, n_steps=100, initial_value=0, n_paths=10, directional_bias=0.0, variance_adjustment=None):
-     # Validate inputs
+def brownian_motion_paths(
+    T=1,
+    n_steps=100,
+    initial_value=0,
+    n_paths=10,
+    directional_bias=0.0,
+    variance_adjustment=None
+):
+    # Validate inputs
     if T <= 0:
         raise ValueError("Time duration T must be greater than 0.")
     if n_steps <= 0:
         raise ValueError("Number of steps n_steps must be greater than 0.")
     if n_paths < 0:
         raise ValueError("Number of paths n_paths must be non-negative.")
-
     if n_paths == 0:
         return np.array([]), np.empty((0, n_steps + 1))
 
@@ -92,7 +111,7 @@ def brownian_motion_paths(T=1, n_steps=100, initial_value=0, n_paths=10, directi
     )
 
     client = setup_dask_cluster(n_paths)
-    
+
     try:
         if n_paths >= gpu_threshold:
             import cupy as cp
@@ -106,21 +125,32 @@ def brownian_motion_paths(T=1, n_steps=100, initial_value=0, n_paths=10, directi
         use_gpu = False
 
     dt = T / n_steps
-    time = xp.linspace(0, T, n_steps + 1)
+    time_grid = xp.linspace(0, T, n_steps + 1)
     if use_gpu:
-        time = time.get()
+        time_grid = time_grid.get()
 
-    file_path = "brownian_paths.dat"
-    if os.path.exists(file_path):
-        os.remove(file_path)
-    paths = np.memmap(file_path, dtype='float32', mode='w+', shape=(n_paths, n_steps + 1))
+    # Create a unique memmap file to avoid collisions
+    timestamp = int(time.time() * 1000)
+    file_path = f"brownian_paths_{timestamp}.dat"
+    paths = np.memmap(
+        file_path,
+        dtype='float32',
+        mode='w+',
+        shape=(n_paths, n_steps + 1)
+    )
+    logging.info(f"Using memmap file: {file_path}")
 
     for i in range(0, n_paths, batch_size):
         batch_end = min(i + batch_size, n_paths)
         batch_size_current = batch_end - i
 
-        tasks = [delayed(simulate_single_path)(T, n_steps, initial_value, dt, directional_bias, variance_adjustment, xp, apply_stochastic_controls) 
-                 for _ in range(batch_size_current)]
+        tasks = [
+            delayed(simulate_single_path)(
+                T, n_steps, initial_value, dt, directional_bias,
+                variance_adjustment, xp, apply_stochastic_controls
+            )
+            for _ in range(batch_size_current)
+        ]
         batch_paths = compute(*tasks)
 
         for j, path in enumerate(batch_paths):
@@ -130,7 +160,7 @@ def brownian_motion_paths(T=1, n_steps=100, initial_value=0, n_paths=10, directi
             paths.flush()
             logging.info(f"Saved up to path {batch_end}/{n_paths}")
 
-    return time, paths
+    return (time_grid, paths)
 
 
 # Example usage
@@ -139,18 +169,20 @@ if __name__ == "__main__":
     cluster = LocalCluster(dashboard_address=":0")
     client = Client(cluster)
 
-    # Call the function or perform operations that use Dask and multiprocessing
-    time, brownian_paths = brownian_motion_paths(T=1, n_steps=100, initial_value=0, n_paths=10)
+    # Run the simulation
+    time_grid, brownian_paths = brownian_motion_paths(
+        T=1, n_steps=100, initial_value=0, n_paths=10
+    )
 
     plt.figure(figsize=(10, 6))
-    for i in range(min(10, 10000)):
-        plt.plot(time, brownian_paths[i], label=f'Path {i+1}')
+    for i in range(min(10, brownian_paths.shape[0])):
+        plt.plot(time_grid, brownian_paths[i], label=f'Path {i+1}')
     plt.title("Brownian Motion Paths (Adaptive and Distributed)")
     plt.xlabel("Time")
     plt.ylabel("W(t)")
     plt.legend()
     plt.show()
 
-    # Optionally, close the client after execution
+    # Clean up
     client.close()
     print("Dask processing complete.")

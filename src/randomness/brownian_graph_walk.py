@@ -1,9 +1,8 @@
 import networkx as nx
 import numpy as np
 from src.randomness.brownian_motion import simulate_single_path
-from src.randomness.stochastic_control import apply_stochastic_controls
+from stochastic_control import apply_stochastic_controls
 import json
-import os
 import time
 from dask import delayed, compute
 import matplotlib.pyplot as plt
@@ -26,18 +25,9 @@ for (start, end), weight in transitions.items():
     G.add_edge(start, end, weight=weight)
 
 def load_user_config(config_path="user_config.json"):
-    # Check if the config file exists
-    if not os.path.exists(config_path):
-        print(f"Warning: Configuration file '{config_path}' not found. Please ensure it exists.")
-        return {}  # Return an empty dictionary or set default configurations
-
-    try:
-        with open(config_path) as f:
-            config = json.load(f)
-        return config
-    except json.JSONDecodeError as e:
-        print(f"Error: Failed to parse '{config_path}'. Invalid JSON format. {e}")
-        return {}  # Return empty or default config in case of JSON format issues
+    with open(config_path) as f:
+        config = json.load(f)
+    return config
 
 user_config = load_user_config()
 
