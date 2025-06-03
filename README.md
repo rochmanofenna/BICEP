@@ -1,5 +1,5 @@
 
-# BICEP: Brownian-Inspired Computationally Efficient Parallelization Pipeline **_(IN PROGRESS)_**
+# BICEP: Brownian-Inspired Computationally Efficient Parallelization Pipeline
 
 **Version**: 1.0  
 **Last Updated**: November 2, 2024  
