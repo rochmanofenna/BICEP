@@ -1,5 +1,5 @@
 
-# BICEP: Brownian-Inspired Computationally Efficient Parallelization Pipeline
+# BICEP: Brownian Compute Engine for Paths
 
 **Version**: 1.0  
 **Last Updated**: November 2, 2024  
