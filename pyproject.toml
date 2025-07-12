@@ -1,0 +1,37 @@
+# bicep/pyproject.toml
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bicep"
+version = "0.1.0"
+description = "BICEP: stochastic parallelization kernels for neural architectures"
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [
+  { name = "Ryan Rochmanofenna", email = "rochmanofenna@google.com" }
+]
+license = { file = "LICENSE" }
+keywords = ["stochastic", "parallelization", "triton", "pytorch"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+]
+
+[project.dependencies]
+torch = ">=2.0"
+triton = ">=2.0"
+numpy = ">=1.20"
+
+[project.optional-dependencies]
+dev = [
+  "pytest",
+  "black",
+  "flake8",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["bicep*"]
