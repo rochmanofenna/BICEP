@@ -1,99 +1,61 @@
 import networkx as nx
-import numpy as np
-from src.randomness.brownian_motion import simulate_single_path
-from src.randomness.stochastic_control import apply_stochastic_controls
-import json
-import time
-from dask import delayed, compute
-import matplotlib.pyplot as plt
-from functools import lru_cache
-import psutil
+import numpy as _np
+from .brownian_motion import simulate_single_path
+from .stochastic_control import apply_stochastic_controls
 
-G = nx.DiGraph()
-bit_states = ['00', '01', '10', '11']
-for state in bit_states:
-    G.add_node(state)
-
-transitions = {
-    ('00', '01'): 1.0,
-    ('00', '10'): 1.0,
-    ('01', '11'): 0.5,
-    ('10', '11'): 0.5,
-    ('11', '00'): 0.2
-}
-for (start, end), weight in transitions.items():
-    G.add_edge(start, end, weight=weight)
-
-import logging
-
-def load_user_config(config_path="user_config.json"):
+def brownian_graph_walk(n_nodes, n_steps,
+                        initial_state="00",
+                        T=1.0,
+                        directional_bias=0.0,
+                        variance_adjustment=None):
     """
-    Load user configuration if available; otherwise return an empty dict.
+    Builds a simple 2-bit state‐graph and walks it using hybrid
+    transitions driven by a Brownian path.
     """
-    try:
-        with open(config_path) as f:
-            return json.load(f)
-    except FileNotFoundError:
-        logging.warning(f"Configuration file '{config_path}' not found; using defaults.")
-        return {}
-    except json.JSONDecodeError as e:
-        logging.error(f"Error parsing '{config_path}': {e}; using defaults.")
-        return {}
+    # 1) build 4-state graph
+    G = nx.DiGraph()
+    for s in ["00","01","10","11"]:
+        G.add_node(s)
+    edges = {
+      ("00","01"):1.0,
+      ("00","10"):1.0,
+      ("01","11"):0.5,
+      ("10","11"):0.5,
+      ("11","00"):0.2
+    }
+    for (u,v),w in edges.items():
+        G.add_edge(u,v,weight=w)
 
-user_config = load_user_config()
+    # 2) generate a single Brownian path
+    dt = T/n_steps
+    path = simulate_single_path(
+        T, n_steps, 0, dt,
+        directional_bias, variance_adjustment,
+        _np, apply_stochastic_controls
+    )
 
-@lru_cache(maxsize=128)
-def get_transition_weight(G, current_state, neighbor, brownian_increment):
-    base_weight = G[current_state][neighbor]['weight']
-    return base_weight * (1 + brownian_increment)
-
-def hybrid_transition(current_state, G, brownian_increment):
-    neighbors = list(G.neighbors(current_state))
-    if not neighbors:
-        return current_state
-
-    weights = [get_transition_weight(G, current_state, neighbor, brownian_increment) for neighbor in neighbors]
-    total_weight = sum(weights)
-    probabilities = [weight / total_weight for weight in weights]
-    next_state = np.random.choice(neighbors, p=probabilities)
-    return next_state
-
-def update_transition_weights(G, state_history):
-    visit_counts = {state: state_history.count(state) for state in G.nodes()}
-    for start in G.nodes():
-        total_visits = sum(visit_counts[neighbor] for neighbor in G.neighbors(start))
-        for neighbor in G.neighbors(start):
-            if total_visits > 0:
-                G[start][neighbor]['weight'] = visit_counts[neighbor] / total_visits
-
-def simulate_graph_walk(initial_state='00', T=1, n_steps=20, directional_bias=0.0, variance_adjustment=None):
-    brownian_path = simulate_single_path(T, n_steps, 0, T / n_steps, directional_bias, variance_adjustment, np, apply_stochastic_controls)
-    current_state = initial_state
-    path = [current_state]
-
+    # 3) walk
+    cur = initial_state
+    history = [cur]
+    import random
     for i in range(n_steps):
-        brownian_increment = brownian_path[i + 1] - brownian_path[i]
-        current_state = hybrid_transition(current_state, G, brownian_increment)
-        path.append(current_state)
+        delta = path[i+1] - path[i]
+        nbrs = list(G.neighbors(cur))
+        if not nbrs:
+            break
+        # weighted choice
+        ws = [G[cur][v]["weight"]*(1+delta) for v in nbrs]
+        tot = sum(ws)
+        probs = [w/tot for w in ws]
+        cur = random.choices(nbrs, probs)[0]
+        history.append(cur)
 
-    update_transition_weights(G, path)
-    return path
+    # 4) update weights
+    counts = {s:history.count(s) for s in G.nodes()}
+    for u in G.nodes():
+        tot = sum(counts[v] for v in G.neighbors(u))
+        for v in G.neighbors(u):
+            if tot>0:
+                G[u][v]["weight"] = counts[v]/tot
 
-def run_parallel_walks(initial_state='00', T=1, n_steps=20, num_paths=10, parallel_threshold=50):
-    if num_paths > parallel_threshold:
-        paths = [delayed(simulate_graph_walk)(initial_state, T, n_steps) for _ in range(num_paths)]
-        computed_paths = compute(*paths)
-    else:
-        computed_paths = [simulate_graph_walk(initial_state, T, n_steps) for _ in range(num_paths)]
-    return computed_paths
-
-def visualize_graph(G, state_history):
-    plt.figure(figsize=(10, 6))
-    pos = nx.spring_layout(G)
-    node_sizes = [state_history.count(node) * 100 for node in G.nodes()]
-    nx.draw(G, pos, with_labels=True, node_size=node_sizes, font_size=12)
-    plt.show()
-
-final_path = simulate_graph_walk()
-print("Final path taken through the graph:", final_path)
-visualize_graph(G, final_path)
+    return G, history
