@@ -1,0 +1,53 @@
+Metadata-Version: 2.4
+Name: bicep
+Version: 0.1.0
+Summary: …
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: torch>=2.0
+Requires-Dist: triton>=2.0
+Requires-Dist: numpy>=1.20
+Requires-Dist: click==8.1.7
+Requires-Dist: cloudpickle==3.1.0
+Requires-Dist: contourpy==1.3.0
+Requires-Dist: cycler==0.12.1
+Requires-Dist: dask==2024.10.0
+Requires-Dist: distributed==2024.10.0
+Requires-Dist: fonttools==4.54.1
+Requires-Dist: fsspec==2024.10.0
+Requires-Dist: importlib_metadata==8.5.0
+Requires-Dist: Jinja2==3.1.4
+Requires-Dist: kiwisolver==1.4.7
+Requires-Dist: locket==1.0.0
+Requires-Dist: MarkupSafe==3.0.2
+Requires-Dist: matplotlib==3.9.2
+Requires-Dist: msgpack==1.1.0
+Requires-Dist: networkx==3.4.2
+Requires-Dist: packaging==24.1
+Requires-Dist: partd==1.4.2
+Requires-Dist: pillow==11.0.0
+Requires-Dist: psutil==6.1.0
+Requires-Dist: pyparsing==3.2.0
+Requires-Dist: python-dateutil==2.9.0.post0
+Requires-Dist: PyYAML==6.0.2
+Requires-Dist: six==1.16.0
+Requires-Dist: sortedcontainers==2.4.0
+Requires-Dist: tblib==3.0.0
+Requires-Dist: toolz==1.0.0
+Requires-Dist: tornado==6.4.1
+Requires-Dist: urllib3==2.2.3
+Requires-Dist: zict==3.0.0
+Requires-Dist: zipp==3.20.2
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"
+Requires-Dist: black; extra == "dev"
+Provides-Extra: gpu
+Requires-Dist: cupy-cuda12x>=12.6; extra == "gpu"
+
+
+# BICEP: Brownian Compute Engine for Paths
+
+**Version**: 1.0  
+**Last Updated**: June 2025  
+**Maintainer**: [Ryan R / github.com/rochmanofenna]
+

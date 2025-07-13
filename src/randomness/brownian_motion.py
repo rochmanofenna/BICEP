@@ -1,9 +1,21 @@
 import os
 import numpy as np
+
+# try to import cupy, but disable if nvrtc isn't present
 try:
     import cupy as cp
+    # a cheap check for NVRTC availability: any compilation will fail otherwise
+    try:
+        _ = cp.cuda.runtime.getDeviceCount()
+        _ = cp._core.core.compile_with_cache  # just touching compile entrypoint
+        _cupy_working = True
+    except Exception:
+        _cupy_working = False
 except ImportError:
-    cp = None
+    _cupy_working = False
+
+# choose xp = cp only if cupy + nvrtc are really usable
+xp = cp if (_cupy_working and cp.cuda.is_available()) else np
 
 # pick the array backend once
 USE_CUPY = cp is not None and os.getenv("DISABLE_CUPY") != "1"
